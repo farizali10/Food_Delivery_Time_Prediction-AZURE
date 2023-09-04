@@ -1,0 +1,107 @@
+=============================================================================================================
+=============================================================================================================
+
+for cat_col in categorical_columns:
+    if len(X_test[cat_col].unique()) == len(X_train[cat_col].unique()):
+        print(f"X_test: {len(X_test[cat_col].unique())}")
+        print(f"X_train: {len(X_train[cat_col].unique())}")
+        print(f"Value Matched for Train & Test Data: {cat_col}")
+        print("="*100)
+    else:
+        print(f"X_test: {len(X_test[cat_col].unique())}")
+        print(f"X_train: {len(X_train[cat_col].unique())}")
+        print(f"Value Not Matched for Train & Test Data: {cat_col}")
+        print("="*100)
+
+=============================================================================================================
+=============================================================================================================
+
+from sklearn.preprocessing import OrdinalEncoder
+
+# Define the categorical features for the simplified pipeline
+simple_categorical_columns = ["Weather_conditions", "Road_traffic_density", "City"]
+
+simple_categorical_pipeline = Pipeline(
+    steps=[
+        ("ordinal_encoder", OrdinalEncoder(categories=[
+            categories_Weather_conditions,
+            categories_Road_traffic_density,
+            categories_City
+        ]))
+    ]
+)
+
+# Transform training data
+X_train_encoded = simple_categorical_pipeline.fit_transform(X_train[simple_categorical_columns])
+
+# Transform test data
+X_test_encoded = simple_categorical_pipeline.transform(X_test[simple_categorical_columns])
+
+# Now, check if the shapes of X_train_encoded and X_test_encoded match
+print("Shape of X_train_encoded:", X_train_encoded.shape)
+print("Shape of X_test_encoded:", X_test_encoded.shape)
+
+=============================================================================================================
+=============================================================================================================
+
+# Remove the nan value
+
+fil_cat_weather = categories_Weather_conditions.remove(np.nan)
+fil_cat_roadtraff = categories_Road_traffic_density.remove(np.nan)
+fil_cat_city = categories_City.remove(np.nan)
+
+# Now fil_cat_weather, fil_cat_roadtraff, and fil_cat_city contain lists without np.nan values
+
+=============================================================================================================
+=============================================================================================================
+
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, OrdinalEncoder
+import pandas as pd
+
+# Initialize a list to keep track of dataframes after each pipeline step
+dataframes_after_steps = []
+
+# Add Imputation
+imputer = SimpleImputer(strategy="most_frequent")
+X_train_imputed = imputer.fit_transform(X_train)
+X_test_imputed = imputer.transform(X_test)
+dataframes_after_steps.append(("After Imputation", X_train_imputed, X_test_imputed))
+
+# Add OrdinalEncoder
+ordinal_encoder = OrdinalEncoder(categories=[fil_cat_weather, fil_cat_roadtraff, fil_cat_city])
+X_train_encoded = ordinal_encoder.fit_transform(X_train_imputed)
+X_test_encoded = ordinal_encoder.transform(X_test_imputed)
+dataframes_after_steps.append(("After OrdinalEncoder", X_train_encoded, X_test_encoded))
+
+# Add OneHotEncoder
+onehot_encoder = OneHotEncoder()
+X_train_onehot = onehot_encoder.fit_transform(X_train_encoded)
+X_test_onehot = onehot_encoder.transform(X_test_encoded)
+dataframes_after_steps.append(("After OneHotEncoder", X_train_onehot, X_test_onehot))
+
+# Convert one-hot encoded data to DataFrames with appropriate column names
+X_train_onehot_df = pd.DataFrame(X_train_onehot.toarray(), columns=onehot_encoder.get_feature_names_out(categorical_columns))
+X_test_onehot_df = pd.DataFrame(X_test_onehot.toarray(), columns=onehot_encoder.get_feature_names_out(categorical_columns))
+dataframes_after_steps.append(("OneHotEncoded DataFrames", X_train_onehot_df, X_test_onehot_df))
+
+# Add Scaling
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train_onehot_df)
+X_test_scaled = scaler.transform(X_test_onehot_df)
+dataframes_after_steps.append(("After Scaling", X_train_scaled, X_test_scaled))
+
+# Print shapes and summaries after each step
+for step_name, X_train_step, X_test_step in dataframes_after_steps:
+    print(f"Step: {step_name}")
+    print("X_train shape:", X_train_step.shape)
+    print("X_test shape:", X_test_step.shape)
+    print("="*50)
+    print("X_train summary:\n", X_train_step[:5])
+    print("="*50)
+    print("X_test summary:\n", X_test_step[:5])
+    print("="*50)
+
+=============================================================================================================
+=============================================================================================================
+
